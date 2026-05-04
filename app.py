@@ -24,7 +24,15 @@ app = FastAPI(title="Aura RAG Web Service")
 vector_stores = {}
 
 # Global Hugging Face embeddings model to avoid reloading on each request
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+embeddings = None
+
+def get_embeddings():
+    global embeddings
+    if embeddings is None:
+        from langchain_huggingface import HuggingFaceEmbeddings
+        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    return embeddings
+
 
 class QueryRequest(BaseModel):
     query: str
@@ -56,7 +64,7 @@ async def upload_pdf(file: UploadFile = File(...)):
         chunks = text_splitter.split_text(extracted_text)
 
         # Build FAISS index
-        vector_store = FAISS.from_texts(chunks, embeddings)
+        vector_store = FAISS.from_texts(chunks, get_embeddings())
         
         # Save to our session store
         file_id = str(uuid.uuid4())
